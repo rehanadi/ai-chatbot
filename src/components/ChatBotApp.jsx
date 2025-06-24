@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { act, useEffect, useRef, useState } from "react"
 import "./ChatBotApp.css"
 import Picker from "@emoji-mart/react"
 import data from "@emoji-mart/data"
@@ -21,6 +21,13 @@ const ChatBotApp = ({
     const currentChat = chats.find((chat) => chat.id === activeChat)
     setMessages(currentChat ? currentChat.messages : [])
   }, [activeChat, chats])
+
+  useEffect(() => {
+    if (activeChat) {
+      const storedMessages = JSON.parse(localStorage.getItem(activeChat)) || []
+      setMessages(storedMessages)
+    }
+  }, [activeChat])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -51,6 +58,7 @@ const ChatBotApp = ({
 
     const updatedMessages = [...messages, newMessage]
     setMessages(updatedMessages)
+    localStorage.setItem(activeChat, JSON.stringify(updatedMessages))
     setInputValue("")
 
     const updatedChats = chats.map((chat) => {
@@ -60,6 +68,7 @@ const ChatBotApp = ({
       return chat
     })
     setChats(updatedChats)
+    localStorage.setItem("chats", JSON.stringify(updatedChats))
     setIsTyping(true)
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -91,6 +100,10 @@ const ChatBotApp = ({
 
     const updatedMessagesWithResponse = [...updatedMessages, newResponse]
     setMessages(updatedMessagesWithResponse)
+    localStorage.setItem(
+      activeChat,
+      JSON.stringify(updatedMessagesWithResponse)
+    )
     setIsTyping(false)
 
     const updatedChatsWithResponse = chats.map((chat) => {
@@ -100,6 +113,7 @@ const ChatBotApp = ({
       return chat
     })
     setChats(updatedChatsWithResponse)
+    localStorage.setItem("chats", JSON.stringify(updatedChatsWithResponse))
   }
 
   const handleKeyDown = (e) => {
@@ -116,6 +130,9 @@ const ChatBotApp = ({
   const handleDeleteChat = (id) => {
     const updatedChats = chats.filter((chat) => chat.id !== id)
     setChats(updatedChats)
+    localStorage.setItem("chats", JSON.stringify(updatedChats))
+    localStorage.removeItem(id)
+
     if (activeChat === id) {
       const newActiveChat = updatedChats.length > 0 ? updatedChats[0].id : null
       setActiveChat(newActiveChat)
@@ -177,10 +194,7 @@ const ChatBotApp = ({
           ></i>
           {showEmojiPicker && (
             <div className="picker">
-              <Picker
-                data={data}
-                onEmojiSelect={handleEmojiSelect}
-              />
+              <Picker data={data} onEmojiSelect={handleEmojiSelect} />
             </div>
           )}
           <input
