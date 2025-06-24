@@ -24,6 +24,12 @@ const ChatBotApp = ({
   const sendMessage = () => {
     if (inputValue.trim() === "") return
 
+    if (!activeChat) {
+      onNewChat(inputValue)
+      setInputValue("")
+      return
+    }
+
     const newMessage = {
       type: "prompt",
       text: inputValue,
