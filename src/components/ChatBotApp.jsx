@@ -1,6 +1,6 @@
 import "./ChatBotApp.css"
 
-const ChatBotApp = () => {
+const ChatBotApp = ({ onGoBack }) => {
   return (
     <div className="chat-app">
       <div className="chat-list">
@@ -24,7 +24,7 @@ const ChatBotApp = () => {
       <div className="chat-window">
         <div className="chat-title">
           <h3>Chat with AI</h3>
-          <i className="bx bx-arrow-right-stroke arrow"></i>
+          <i className="bx bx-arrow-right-stroke arrow" onClick={onGoBack}></i>
         </div>
         <div className="chat">
           <div className="prompt">
