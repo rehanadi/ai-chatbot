@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import "./ChatBotApp.css"
 
 const ChatBotApp = ({
@@ -11,17 +11,23 @@ const ChatBotApp = ({
 }) => {
   const [inputValue, setInputValue] = useState("")
   const [messages, setMessages] = useState(chats[0]?.messages || [])
+  const [isTyping, setIsTyping] = useState(false)
+  const chatEndRef = useRef(null)
 
   useEffect(() => {
     const currentChat = chats.find((chat) => chat.id === activeChat)
     setMessages(currentChat ? currentChat.messages : [])
   }, [activeChat, chats])
 
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
   const handleInputChange = (e) => {
     setInputValue(e.target.value)
   }
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (inputValue.trim() === "") return
 
     if (!activeChat) {
@@ -47,6 +53,46 @@ const ChatBotApp = ({
       return chat
     })
     setChats(updatedChats)
+    setIsTyping(true)
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "user",
+            content: inputValue,
+          },
+        ],
+        max_tokens: 500,
+      }),
+    })
+
+    const data = await response.json()
+    const chatResponse = data.choices[0].message.content.trim()
+
+    const newResponse = {
+      type: "response",
+      text: chatResponse,
+      timestamp: new Date().toLocaleTimeString(),
+    }
+
+    const updatedMessagesWithResponse = [...updatedMessages, newResponse]
+    setMessages(updatedMessagesWithResponse)
+    setIsTyping(false)
+
+    const updatedChatsWithResponse = chats.map((chat) => {
+      if (chat.id === activeChat) {
+        return { ...chat, messages: updatedMessagesWithResponse }
+      }
+      return chat
+    })
+    setChats(updatedChatsWithResponse)
   }
 
   const handleKeyDown = (e) => {
@@ -109,7 +155,8 @@ const ChatBotApp = ({
               {msg.text} <span>{msg.timestamp}</span>
             </div>
           ))}
-          <div className="typing">Typing...</div>
+          {isTyping && <div className="typing">Typing...</div>}
+          <div ref={chatEndRef}></div>
         </div>
         <form
           className="msg-form"
